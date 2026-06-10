@@ -1,8 +1,6 @@
 return {
     "nvim-telescope/telescope.nvim",
 
-    tag = "0.1.5",
-
     dependencies = {
         "nvim-lua/plenary.nvim"
     },
@@ -13,11 +11,12 @@ return {
                 file_ignore_patterns = {
                     "%.dll$",
                     "%.trx$",
-                    "obj\\",
-                    "bin\\",
-                    "packages\\"
+                    "obj/.*",
+                    "bin/.*",
+                    "packages/.*",
+                    "%.o"
                 }
-            }
+            },
         })
 
         local builtin = require('telescope.builtin')

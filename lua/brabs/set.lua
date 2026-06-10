@@ -12,7 +12,7 @@ vim.opt.wrap = false
 
 vim.opt.swapfile = false
 vim.opt.backup = false
-vim.opt.undodir = "C:\\Users\\Brand\\AppData\\Local\\nvim-data"
+vim.opt.undodir = vim.env.LOCALAPPDATA .. "\\nvim-data"
 vim.opt.undofile = true
 
 vim.opt.incsearch = true

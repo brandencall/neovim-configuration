@@ -17,18 +17,30 @@ return {
     config = function()
         vim.api.nvim_create_autocmd("DiagnosticChanged", {
             callback = function()
-                vim.diagnostic.setqflist({ open = false })
+                local diags = vim.diagnostic.get(nil)
+                if #diags > 0 then
+                    vim.diagnostic.setqflist({ open = false })
+                end
             end,
         })
         vim.api.nvim_create_autocmd("BufWritePre", {
-            pattern = "*",
-            callback = function()
-                vim.lsp.buf.code_action({
-                    context = { only = { "source.organizeImports" } },
-                    apply = true,
+            pattern = { "*.cs", "*.cpp", "*.c", "*.h", "*.hpp" },
+            callback = function(args)
+                local ft = vim.bo[args.buf].filetype
+
+                if ft == "cs" or ft == "cpp" or ft == "c" then
+                    vim.lsp.buf.code_action({
+                        context = { only = { "source.organizeImports" } },
+                        apply = true,
+                    })
+                end
+
+                vim.lsp.buf.format({
+                    bufnr = args.buf,
+                    timeout_ms = 2000,
                 })
             end,
-            desc = "Auto-import missing packages before saving",
+            desc = "Organize imports + format on save",
         })
         local cmp = require('cmp')
         local cmp_lsp = require("cmp_nvim_lsp")
@@ -44,8 +56,8 @@ return {
             ensure_installed = {
                 "lua_ls",
                 "omnisharp",
-                "ts_ls",
-                "pylsp",
+                "clangd",
+                "jdtls",
             },
             handlers = {
                 function(server_name) -- default handler (optional)
@@ -93,45 +105,39 @@ return {
                             FormattingOptions = {
                                 EnableEditorConfigSupport = true
                             }
-                        }
+                        },
                     })
                 end,
-                ["ts_ls"] = function()
-                    require("lspconfig").ts_ls.setup({
-                        capabilities = capabilities,
+                ["clangd"] = function()
+                    require("lspconfig").clangd.setup({
+                        capabilities = capabilities, -- Reuse your existing capabilities
+                        cmd = { "clangd", "--background-index", "--clang-tidy", "--compile-commands-dir=~/UnrealEngine" },
+                        root_dir = function(fname)
+                            local util = require('lspconfig.util')
+                            -- Check for project root (e.g., .uproject or compile_commands.json)
+                            local project_root = util.root_pattern('.uproject', 'compile_commands.json')(fname)
+                            if project_root then
+                                return project_root
+                            end
+                            -- Fallback to engine root
+                            return '/home/brabs/UnrealEngine'
+                        end,
                         settings = {
-                            typescript = {
-                                inlayHints = {
-                                    includeInlayParameterNameHints = "all",
-                                    includeInlayEnumMemberValueHints = true,
+                            clangd = {
+                                InlayHints = {
+                                    Enabled = true, -- Show type hints in code (if supported by your clangd version)
+                                },
+                                Formatting = {
+                                    Enable = true, -- Enable clang-format integration
+                                    Style = "file",
                                 },
                             },
                         },
-                        root_dir = require("lspconfig.util").root_pattern("package.json", "tsconfig.json",
-                            "jsconfig.json", ".git"),
-                    })
-                end,
-                ["pylsp"] = function()
-                    require("lspconfig").pylsp.setup({
-                        capabilities = capabilities,
-                        settings = {
-                            python = {
-                                analysis = {
-                                    autoSearchPaths = true,
-                                    extraPaths = { "C:/Users/Brand/AppData/Local/Programs/Python/Python313/Lib/site-packages" },
-                                    diagnosticMode = "workspace",
-                                    useLibraryCodeForTypes = true,
-                                },
-                                pythonPath = "C:/Users/Brand/AppData/Local/Programs/Python/Python313"
-                            },
-                            pylsp = {
-                                plugins = {
-                                    pycodestyle = {
-                                        enabled = true,
-                                        maxLineLength = 120,
-                                    }
-                                }
-                            },
+                        init_options = {
+                            usePlaceholders = true,
+                            completeUnimported = true, -- Suggest missing includes
+                            clangdFileStatus = true,
+                            compilationDatabasePath = '/home/brabs/UnrealEngine',
                         },
                     })
                 end,
@@ -140,6 +146,12 @@ return {
                         capabilities = capabilities,
                     })
                 end,
+                vim.api.nvim_create_autocmd("FileType", {
+                    pattern = "java",
+                    callback = function()
+                        require("brabs.java")
+                    end,
+                })
             }
         })
 
