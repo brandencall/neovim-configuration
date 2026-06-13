@@ -10,6 +10,9 @@ return {
             defaults = {
                 file_ignore_patterns = {
                     "%.dll$",
+                    "%.pdb$",
+                    "%.exe$",
+                    "%.idb$",
                     "%.trx$",
                     "obj/.*",
                     "bin/.*",
